@@ -26,6 +26,25 @@ class MyVanna(ChromaDB_VectorStore, OpenAI_Chat):
         
         # 设置数据库连接
         self.db_engine = config.get('db_engine')
+    
+    def submit_prompt(self, prompt, **kwargs):
+        resp = self.client.chat.completions.create(
+            model=self.model,
+            messages=prompt,
+            stream=True
+        )
+        
+        # 初始化空字符串用于累积响应
+        answer = ''
+        
+        # 遍历流式响应，累加内容
+        for chunk in resp:
+            if chunk.choices[0].delta.content is not None:
+                answer += chunk.choices[0].delta.content
+        
+        global DEBUG_INFO
+        DEBUG_INFO = (prompt, answer)
+        return answer
 
 # 创建 MySQL 数据库连接
 db_url = "mysql+pymysql://root:root@www.hxfssc.com:3306/vanna"
@@ -66,8 +85,8 @@ client = OpenAI(
 # 创建 Vanna 实例
 vn = MyVanna(config={
     'client': client,
-    'model': 'deepseek-ai/DeepSeek-R1-Distill-Qwen-7B',  # 或其他已部署的模型名称
-    'db_engine': engine  # 添加数据库引擎
+    'model': 'deepseek-ai/DeepSeek-R1-Distill-Qwen-7B',
+    'db_engine': engine
 })
 
 # 初始化数据库
